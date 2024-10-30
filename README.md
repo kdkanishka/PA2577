@@ -2,12 +2,28 @@
 
 A simple todo application with a scalable backend  and multiple components capable of scaling individually.
 
-# Components
+# Source code repository
+All the source code can be found on https://github.com/kdkanishka/PA2577
+
+infrastructure/application - contains the kubernetes defenitions for the resources
+
+# Components of the architecture
+architrue diagram is attached as an image. (simple shopping list architecture.png)
+
 There are three main components of the app which is deployed using Kubernetes 
 
  - Mongodb : serves as the data store for the backend
  - Shopping list service : has the integration with th backend and contains the business logic
  - Shopping list api : Fullfils the authentication and provides the API functionality to the frontend
+
+ ### Challanges
+ - Service discovery - since my architrecutre contains 2 different scalable components, it should be able to discover the service instances from the calling service.
+
+ For example, api service need to forward the authenticatd requests for the backend service. 
+
+ I have solved this by using kubenetes services. Backend services are exposed as a ClusterIP service resource type. It will not be available to the outside network.
+
+ When it comes to the Api service, it should be available to the outside world, So I have used NodePort for the sake of simplysity here. But ideally it should be an ingress with proper TLS setup.
 
 ## Technologies used
 
