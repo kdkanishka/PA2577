@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoppinglist-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shoppinglist-api
+  template:
+    metadata:
+      labels:
+        app: shoppinglist-api
+    spec:
+      containers:
+      - name: shoppinglist-service
+        image: kdkanishka/shoppinglist-api:0.7
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SHOPPING_LIST_SERVICE_URI
+          value: "http://shoppinglist-service:8080"
