@@ -32,10 +32,12 @@
             padding: 10px;
             margin: 5px 0;
             background: #f9f9f9;
+            transition: all 0.3s ease;
         }
         .completed {
             text-decoration: line-through;
             opacity: 0.7;
+            background: #e0e0e0;
         }
         button {
             padding: 5px 10px;
@@ -46,10 +48,31 @@
             margin: 5px;
             padding: 5px;
         }
+        .checkbox-wrapper {
+            margin-right: 10px;
+        }
+        .status-message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
     </style>
 </head>
 <body>
     <h1>Shopping List Manager</h1>
+    
+    <div id="statusMessage" class="status-message"></div>
 
     <!-- Create Shopping List Section -->
     <div class="section">
@@ -83,8 +106,19 @@
     </div>
 
     <script>
-        const API_BASE = 'http://192.168.49.2:30080'; // Hardcoded API base URL TODO : get this dynamically
+        const API_BASE = 'http://192.168.49.2:30080';
         let currentListId = null;
+
+        // Show status message function
+        function showStatusMessage(message, isError = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message ${isError ? 'error' : 'success'}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
 
         // Fetch all shopping lists
         async function fetchShoppingLists() {
@@ -95,6 +129,7 @@
                 updateListSelect(lists);
             } catch (error) {
                 console.error('Error fetching shopping lists:', error);
+                showStatusMessage('Failed to fetch shopping lists', true);
             }
         }
 
@@ -136,9 +171,11 @@
                     document.getElementById('listName').value = '';
                     document.getElementById('listDescription').value = '';
                     fetchShoppingLists();
+                    showStatusMessage('Shopping list created successfully');
                 }
             } catch (error) {
                 console.error('Error creating shopping list:', error);
+                showStatusMessage('Failed to create shopping list', true);
             }
         }
 
@@ -147,6 +184,11 @@
             const shopping_list_id = document.getElementById('listSelect').value;
             const name = document.getElementById('itemName').value;
             const quantity = parseInt(document.getElementById('itemQuantity').value);
+
+            if (!shopping_list_id) {
+                showStatusMessage('Please select a shopping list', true);
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/shoppingitems`, {
@@ -168,9 +210,11 @@
                     if (shopping_list_id === currentListId) {
                         fetchShoppingItems(currentListId);
                     }
+                    showStatusMessage('Item added successfully');
                 }
             } catch (error) {
                 console.error('Error creating shopping item:', error);
+                showStatusMessage('Failed to create item', true);
             }
         }
 
@@ -188,6 +232,7 @@
                 displayShoppingItems(items);
             } catch (error) {
                 console.error('Error fetching shopping items:', error);
+                showStatusMessage('Failed to fetch shopping items', true);
             }
         }
 
@@ -195,10 +240,13 @@
         function displayShoppingItems(items) {
             const container = document.getElementById('shoppingItems');
             container.innerHTML = items.map(item => `
-                <div class="shopping-item ${item.completed ? 'completed' : ''}">
-                    <input type="checkbox" 
-                           ${item.completed ? 'checked' : ''} 
-                           onchange="toggleItemComplete('${item.id}', this.checked)">
+                <div class="shopping-item ${item.completed ? 'completed' : ''}" id="item-${item.id}">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" 
+                               ${item.completed ? 'checked' : ''} 
+                               onchange="toggleItemComplete('${item.id}', this.checked)"
+                               ${item.completed ? 'disabled' : ''}>
+                    </div>
                     <span>${item.name} (Quantity: ${item.quantity})</span>
                 </div>
             `).join('');
@@ -206,8 +254,36 @@
 
         // Toggle item complete status
         async function toggleItemComplete(itemId, completed) {
-            // Note: You'll need to add an endpoint to your API to handle this
-            console.log(`Toggle item ${itemId} to ${completed}`);
+            try {
+                const response = await fetch(`${API_BASE}/shoppingitems/${itemId}/complete`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const itemElement = document.getElementById(`item-${itemId}`);
+                    if (itemElement) {
+                        itemElement.classList.add('completed');
+                        const checkbox = itemElement.querySelector('input[type="checkbox"]');
+                        checkbox.checked = true;
+                        checkbox.disabled = true;
+                    }
+                    showStatusMessage('Item marked as complete');
+                } else {
+                    throw new Error('Failed to complete item');
+                }
+            } catch (error) {
+                console.error('Error completing item:', error);
+                showStatusMessage('Failed to mark item as complete', true);
+                // Revert checkbox state if the API call failed
+                const itemElement = document.getElementById(`item-${itemId}`);
+                if (itemElement) {
+                    const checkbox = itemElement.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !completed;
+                }
+            }
         }
 
         // Initial load
