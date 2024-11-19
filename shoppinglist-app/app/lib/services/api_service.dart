@@ -21,7 +21,7 @@ class ApiService {
     Map<String, String> headers = _createAuthHeader();
 
     final response = await http.get(
-      Uri.parse('$baseUrl/shoppinglists'),
+      Uri.parse('$baseUrl/shoppinglists'),''
       headers: headers,
     );
 
