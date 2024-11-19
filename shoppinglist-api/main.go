@@ -119,7 +119,20 @@ func main() {
 	e := echo.New()
 
 	//static file server
-	e.Static("/", "public")
+	//e.Static("/", "public")
+	e.File("/", "public/index.html")
+
+
+
+	// Disable CORS for development purposes
+	e.Use(middleware.CORS())
+
+	corsConfig := middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost},
+	}
+
+	e.Use(middleware.CORSWithConfig(corsConfig))
 
 	// Add logging middleware
 	e.Use(middleware.Logger())

@@ -19,10 +19,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -o shopping-api .
 # Final stage
 FROM alpine:latest
 
+# Install bash for dev purposes
+RUN apk add --no-cache bash
+
 WORKDIR /root/
 
 # Copy the binary from builder
 COPY --from=builder /app/shopping-api .
+COPY --from=builder /app/public public
 
 # Expose port
 EXPOSE 8080

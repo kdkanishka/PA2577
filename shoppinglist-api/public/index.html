@@ -1,38 +1,217 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="/">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="app">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>app</title>
-  <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping List Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .shopping-list {
+            cursor: pointer;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+        }
+        .shopping-list:hover {
+            background: #e5e5e5;
+        }
+        .shopping-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f9f9f9;
+        }
+        .completed {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        input, select {
+            margin: 5px;
+            padding: 5px;
+        }
+    </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+    <h1>Shopping List Manager</h1>
+
+    <!-- Create Shopping List Section -->
+    <div class="section">
+        <h2>Create New Shopping List</h2>
+        <input type="text" id="listName" placeholder="List Name">
+        <input type="text" id="listDescription" placeholder="Description">
+        <button onclick="createShoppingList()">Create List</button>
+    </div>
+
+    <!-- Shopping Lists Section -->
+    <div class="section">
+        <h2>Your Shopping Lists</h2>
+        <div id="shoppingLists"></div>
+    </div>
+
+    <!-- Create Shopping Item Section -->
+    <div class="section">
+        <h2>Add Item to Selected List</h2>
+        <select id="listSelect">
+            <option value="">Select a list</option>
+        </select>
+        <input type="text" id="itemName" placeholder="Item Name">
+        <input type="number" id="itemQuantity" placeholder="Quantity">
+        <button onclick="createShoppingItem()">Add Item</button>
+    </div>
+
+    <!-- Shopping Items Section -->
+    <div class="section">
+        <h2>Shopping Items</h2>
+        <div id="shoppingItems"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://192.168.49.2:30080'; // Hardcoded API base URL TODO : get this dynamically
+        let currentListId = null;
+
+        // Fetch all shopping lists
+        async function fetchShoppingLists() {
+            try {
+                const response = await fetch(`${API_BASE}/shoppinglists`);
+                const lists = await response.json();
+                displayShoppingLists(lists);
+                updateListSelect(lists);
+            } catch (error) {
+                console.error('Error fetching shopping lists:', error);
+            }
+        }
+
+        // Display shopping lists
+        function displayShoppingLists(lists) {
+            const container = document.getElementById('shoppingLists');
+            container.innerHTML = lists.map(list => `
+                <div class="shopping-list" onclick="selectList('${list.id}')">
+                    <h3>${list.name}</h3>
+                    <p>${list.description}</p>
+                </div>
+            `).join('');
+        }
+
+        // Update list select dropdown
+        function updateListSelect(lists) {
+            const select = document.getElementById('listSelect');
+            select.innerHTML = '<option value="">Select a list</option>' + 
+                lists.map(list => `
+                    <option value="${list.id}">${list.name}</option>
+                `).join('');
+        }
+
+        // Create new shopping list
+        async function createShoppingList() {
+            const name = document.getElementById('listName').value;
+            const description = document.getElementById('listDescription').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/shoppinglists`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+
+                if (response.ok) {
+                    document.getElementById('listName').value = '';
+                    document.getElementById('listDescription').value = '';
+                    fetchShoppingLists();
+                }
+            } catch (error) {
+                console.error('Error creating shopping list:', error);
+            }
+        }
+
+        // Create new shopping item
+        async function createShoppingItem() {
+            const shopping_list_id = document.getElementById('listSelect').value;
+            const name = document.getElementById('itemName').value;
+            const quantity = parseInt(document.getElementById('itemQuantity').value);
+
+            try {
+                const response = await fetch(`${API_BASE}/shoppingitems`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        shopping_list_id,
+                        name,
+                        quantity,
+                        completed: false
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('itemName').value = '';
+                    document.getElementById('itemQuantity').value = '';
+                    if (shopping_list_id === currentListId) {
+                        fetchShoppingItems(currentListId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating shopping item:', error);
+            }
+        }
+
+        // Select a list and show its items
+        async function selectList(listId) {
+            currentListId = listId;
+            fetchShoppingItems(listId);
+        }
+
+        // Fetch shopping items for a list
+        async function fetchShoppingItems(listId) {
+            try {
+                const response = await fetch(`${API_BASE}/shoppinglists/${listId}/shoppingitems`);
+                const items = await response.json();
+                displayShoppingItems(items);
+            } catch (error) {
+                console.error('Error fetching shopping items:', error);
+            }
+        }
+
+        // Display shopping items
+        function displayShoppingItems(items) {
+            const container = document.getElementById('shoppingItems');
+            container.innerHTML = items.map(item => `
+                <div class="shopping-item ${item.completed ? 'completed' : ''}">
+                    <input type="checkbox" 
+                           ${item.completed ? 'checked' : ''} 
+                           onchange="toggleItemComplete('${item.id}', this.checked)">
+                    <span>${item.name} (Quantity: ${item.quantity})</span>
+                </div>
+            `).join('');
+        }
+
+        // Toggle item complete status
+        async function toggleItemComplete(itemId, completed) {
+            // Note: You'll need to add an endpoint to your API to handle this
+            console.log(`Toggle item ${itemId} to ${completed}`);
+        }
+
+        // Initial load
+        fetchShoppingLists();
+    </script>
 </body>
 </html>
