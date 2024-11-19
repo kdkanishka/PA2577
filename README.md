@@ -36,7 +36,7 @@ The architecture is designed to be scalable by leveraging Kubernetes. Each compo
 
 The application is divided into microservices (Shopping List Service and Shopping List API), each responsible for a specific function. This separation of concerns makes the system more modular and easier to manage. When requirements grow it is possible to define more modules in the same mannaar and follow the same pattern to seamlessly incooperate with other modules ( microservices )
 
-**Containerizatiob**
+**Containerization**
 
 Docker is used to containerize the application components as well as application builds (go compilation happens in a different container and copiled to a lightweight container), As it ensures consistency across different environments and simplifying deployment.
 
@@ -96,6 +96,5 @@ It will display the url as below
     http://192.168.49.2:30080
 
 ## ToDo
-Complete the web application part. due to the deadline of the submittion I am submitting with the partially completed web app. But the backend is fully completed.
-
+Integrate the app with a authentication service. Until that I have hardcoded basic authentication credentials in the middleware for the demostration purposes.
 
